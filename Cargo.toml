@@ -1,0 +1,11 @@
+[package]
+name = "dane_krs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sqlx = { version = "0.8.6", features = ["sqlite", "runtime-tokio-native-tls", "macros"] }
+reqwest = { version = "0.12.22", features = ["json", "rustls-tls"] }
+serde = { version = "1.0.219", features = ["derive"] }
+tokio = { version = "1.47.0", features = ["full"] }
+futures = "0.3.31"
