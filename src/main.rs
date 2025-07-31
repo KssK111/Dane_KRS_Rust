@@ -40,14 +40,12 @@ async fn main() -> Result<(), Box<dyn Error>>
 
     let (sender, reciever) = mpsc::channel::<JsonResponse>(100);
 
-    let db_task_handle = tokio::spawn(db_task_handle(reciever, pool));
+    let db_task_handle = tokio::spawn(db_task(reciever, pool));
 
     let client = Arc::new(Client::new());
     let mut handles = Vec::with_capacity(ilosc_requestow * size_of::<JoinHandle<()>>());
     for i in 0..ilosc_requestow
     {
-        let client = client.clone();
-        let sender = sender.clone();
         handles.push(tokio::spawn(send_request(i, client.clone(), sender.clone())))
     }
     join_all(handles).await;

@@ -5,7 +5,7 @@ use serde::Deserialize;
 use sqlx::{query, Pool, Sqlite};
 
 pub const CREATE_SCRIPT: &str = include_str!("create-table.sql");
-pub const ADD_SCRIPT: &str = include_str!("add-db.sql");
+const ADD_SCRIPT: &str = include_str!("add-db.sql");
 
 #[derive(Deserialize)]
 pub struct JsonResponse {odpis: Odpis}
@@ -78,7 +78,7 @@ struct Adres
     poczta: Option<String>
 }
 
-pub async fn db_task_handle(mut reciever: Receiver<JsonResponse>, pool: Pool<Sqlite>)
+pub async fn db_task(mut reciever: Receiver<JsonResponse>, pool: Pool<Sqlite>)
 {
     while let Some(data) = reciever.recv().await
     {
