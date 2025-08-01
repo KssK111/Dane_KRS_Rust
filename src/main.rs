@@ -1,4 +1,4 @@
-use std::{env::args, error::Error, fs::File, path::Path, process::exit, sync::Arc, time::Instant};
+use std::{env::args, error::Error, fs::File, mem::transmute, path::Path, process::exit, time::Instant};
 use futures::future::join_all;
 use reqwest::Client;
 use sqlx::{Executor, SqlitePool};
@@ -42,11 +42,12 @@ async fn main() -> Result<(), Box<dyn Error>>
 
     let db_task_handle = tokio::spawn(db_task(reciever, pool));
 
-    let client = Arc::new(Client::new());
+    let client = Client::new();
+    let client_ref = unsafe { transmute::<&Client, &'static Client>(&client) };
     let mut handles = Vec::with_capacity(ilosc_requestow * size_of::<JoinHandle<()>>());
     for i in 0..ilosc_requestow
     {
-        handles.push(tokio::spawn(send_request(i, client.clone(), sender.clone())))
+        handles.push(tokio::spawn(send_request(i, client_ref, sender.clone())))
     }
     join_all(handles).await;
     drop(sender);

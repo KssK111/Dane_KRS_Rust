@@ -1,5 +1,4 @@
 use tokio::sync::mpsc::{Receiver, Sender};
-use std::sync::Arc;
 use reqwest::Client;
 use serde::Deserialize;
 use sqlx::{query, Pool, Sqlite};
@@ -137,7 +136,7 @@ pub async fn db_task(mut reciever: Receiver<JsonResponse>, pool: Pool<Sqlite>)
     }
 }
 
-pub async fn send_request(number: usize, client: Arc<Client>, sender: Sender<JsonResponse>)
+pub async fn send_request(number: usize, client: &Client, sender: Sender<JsonResponse>)
 {
     match client.get(format!("https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/{number}?rejestr=P&format=json"))
         .send()
