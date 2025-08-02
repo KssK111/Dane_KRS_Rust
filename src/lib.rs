@@ -2,9 +2,19 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use reqwest::Client;
 use serde::Deserialize;
 use sqlx::{query, Pool, Sqlite};
+use clap::Parser;
 
 pub const CREATE_SCRIPT: &str = include_str!("create-table.sql");
 const ADD_SCRIPT: &str = include_str!("add-db.sql");
+
+#[derive(Parser)]
+pub struct Args
+{
+    #[arg(short = 'r', long = "req-num", default_value_t = 1_000)]
+    pub number_of_requests: usize,
+    #[arg(short = 'p', long = "per-loop", default_value_t = 1 << 10)]
+    pub requests_per_loop: usize
+}
 
 #[derive(Deserialize)]
 pub struct JsonResponse {odpis: Odpis}
@@ -130,7 +140,7 @@ pub async fn db_task(mut reciever: Receiver<JsonResponse>, pool: Pool<Sqlite>)
             .execute(&pool)
             .await
         {
-            Ok(_) => (),
+            Ok(_) => println!("Saved to the DB 💾"),
             Err(err) => eprintln!("Could not save to the DB ({err})")
         }
     }
@@ -149,8 +159,8 @@ pub async fn send_request(number: usize, client: &Client, sender: Sender<JsonRes
             {
                 Ok(json) =>
                 {
-                    println!("Found {number} 🙂");
                     sender.send(json).await.unwrap();
+                    println!("Found {number} 🙂");
                 }
                 Err(err) => eprintln!("{}", err.to_string().trim())
             }

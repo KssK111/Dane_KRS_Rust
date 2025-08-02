@@ -1,4 +1,5 @@
-use std::{env::args, error::Error, fs::File, mem::transmute, path::Path, process::exit, time::Instant};
+use std::{error::Error, fs::File, mem::transmute, path::Path, process::exit, time::Instant};
+use clap::Parser;
 use futures::future::join_all;
 use reqwest::Client;
 use sqlx::{Executor, SqlitePool};
@@ -10,20 +11,11 @@ async fn main() -> Result<(), Box<dyn Error>>
 {
     let start = Instant::now();
 
-    let ilosc_requestow =
-    match args().nth(1)
+    let Args
     {
-        Some(arg) => match arg.parse::<usize>()
-        {
-            Ok(num) => num,
-            Err(_) =>
-            {
-                eprintln!("Nie podano liczby, lub podano liczbę ujemną");
-                exit(1)
-            },
-        }
-        None => 1000
-    };
+        number_of_requests,
+        requests_per_loop
+    } = Args::parse();
 
     let check_db = Path::new("krs.db");
     if !(check_db.exists() && check_db.is_file())
@@ -38,18 +30,24 @@ async fn main() -> Result<(), Box<dyn Error>>
     let pool = SqlitePool::connect("sqlite://krs.db").await?;
     pool.execute(CREATE_SCRIPT).await?;
 
-    let (sender, reciever) = mpsc::channel::<JsonResponse>(100);
+    let (sender, reciever) = mpsc::channel::<JsonResponse>(1);
 
     let db_task_handle = tokio::spawn(db_task(reciever, pool));
 
     let client = Client::new();
     let client_ref = unsafe { transmute::<&Client, &'static Client>(&client) };
-    let mut handles = Vec::with_capacity(ilosc_requestow * size_of::<JoinHandle<()>>());
-    for i in 0..ilosc_requestow
+    
+    let mut iter = 0..number_of_requests;
+    while !iter.is_empty()
     {
-        handles.push(tokio::spawn(send_request(i, client_ref, sender.clone())))
+        let mut n_handles = Vec::with_capacity(requests_per_loop * size_of::<JoinHandle<()>>());
+        for i in iter.by_ref().take(requests_per_loop)
+        {
+            n_handles.push(tokio::spawn(send_request(i, client_ref, sender.clone())));
+        }
+        join_all(n_handles).await;
     }
-    join_all(handles).await;
+
     drop(sender);
     db_task_handle.await?;
 
