@@ -3,7 +3,7 @@ use clap::Parser;
 use futures::future::join_all;
 use reqwest::Client;
 use sqlx::{Executor, SqlitePool};
-use tokio::{sync::mpsc, task::JoinHandle};
+use tokio::{sync::mpsc};
 use dane_krs::*;
 
 #[tokio::main]
@@ -40,7 +40,7 @@ async fn main() -> Result<(), Box<dyn Error>>
     let mut iter = 0..number_of_requests;
     while !iter.is_empty()
     {
-        let mut n_handles = Vec::with_capacity(requests_per_loop * size_of::<JoinHandle<()>>());
+        let mut n_handles = Vec::with_capacity(requests_per_loop);
         for i in iter.by_ref().take(requests_per_loop)
         {
             n_handles.push(tokio::spawn(send_request(i, client_ref, sender.clone())));
